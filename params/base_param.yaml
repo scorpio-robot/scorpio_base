@@ -1,0 +1,33 @@
+scorpio_base:
+  ros__parameters:
+    base_frame_id: "base_footprint"
+    odom_frame_id: "odom"
+    stm32_port: "/dev/ttyS0"
+    motor_port: "/dev/ttyS3"
+    stm32_baud: 115200
+    motor_baud: 57600
+    hall_encoder: true
+    limited_speed: 1.0
+    wheelbase: 0.315
+
+joy:
+  ros__parameters:
+    deadzone: 0.2
+    autorepeat_rate: 20.0
+
+teleop_twist_joy:
+  ros__parameters:
+    axis_linear:  # Left thumb stick vertical
+      x: 1
+    scale_linear:
+      x: 0.7
+    scale_linear_turbo:
+      x: 1.5
+
+    axis_angular:  # Left thumb stick horizontal
+      yaw: 0
+    scale_angular:
+      yaw: 0.4
+
+    enable_button: 2  # Left trigger button
+    enable_turbo_button: 5  # Right trigger button

@@ -12,7 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable
 from launch.substitutions import LaunchConfiguration
@@ -20,17 +22,11 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Launch Scorpio base driver."""
+    # Getting directories and launch-files
+    bringup_dir = get_package_share_directory("scorpio_base")
+
     # Create the launch configuration variables
-    base_frame_id = LaunchConfiguration("base_frame_id")
-    odom_frame_id = LaunchConfiguration("odom_frame_id")
-    stm32_port = LaunchConfiguration("stm32_port")
-    motor_port = LaunchConfiguration("motor_port")
-    stm32_baud = LaunchConfiguration("stm32_baud")
-    motor_baud = LaunchConfiguration("motor_baud")
-    hall_encoder = LaunchConfiguration("hall_encoder")
-    limited_speed = LaunchConfiguration("limited_speed")
-    wheelbase = LaunchConfiguration("wheelbase")
+    params_file = LaunchConfiguration("params_file")
 
     # Set environment variables for better logging
     stdout_linebuf_envvar = SetEnvironmentVariable(
@@ -40,79 +36,34 @@ def generate_launch_description():
     colorized_output_envvar = SetEnvironmentVariable("RCUTILS_COLORIZED_OUTPUT", "1")
 
     # Declare launch arguments
-    declare_base_frame_id_cmd = DeclareLaunchArgument(
-        "base_frame_id",
-        default_value="base_footprint",
-        description="Base frame ID",
-    )
-
-    declare_odom_frame_id_cmd = DeclareLaunchArgument(
-        "odom_frame_id",
-        default_value="odom",
-        description="Odometry frame ID",
-    )
-
-    declare_stm32_port_cmd = DeclareLaunchArgument(
-        "stm32_port",
-        default_value="/dev/ttyS0",
-        description="STM32 serial port",
-    )
-
-    declare_motor_port_cmd = DeclareLaunchArgument(
-        "motor_port",
-        default_value="/dev/ttyS3",
-        description="Motor controller serial port",
-    )
-
-    declare_stm32_baud_cmd = DeclareLaunchArgument(
-        "stm32_baud",
-        default_value="115200",
-        description="STM32 baud rate",
-    )
-
-    declare_motor_baud_cmd = DeclareLaunchArgument(
-        "motor_baud",
-        default_value="57600",
-        description="Motor controller baud rate",
-    )
-
-    declare_hall_encoder_cmd = DeclareLaunchArgument(
-        "hall_encoder",
-        default_value="true",
-        description="Enable hall encoder odometry",
-    )
-
-    declare_limited_speed_cmd = DeclareLaunchArgument(
-        "limited_speed",
-        default_value="1.0",
-        description="Maximum speed in m/s",
-    )
-
-    declare_wheelbase_cmd = DeclareLaunchArgument(
-        "wheelbase",
-        default_value="0.315",
-        description="Wheelbase in meters",
+    declare_params_file_cmd = DeclareLaunchArgument(
+        "params_file",
+        default_value=os.path.join(bringup_dir, "params", "base_param.yaml"),
+        description="Path to parameter file",
     )
 
     # Main Scorpio base driver node
-    scorpio_base_node = Node(
+    start_scorpio_base_node = Node(
         package="scorpio_base",
         executable="scorpio_base_node",
         name="scorpio_base",
         output="screen",
-        parameters=[
-            {
-                "base_frame_id": base_frame_id,
-                "odom_frame_id": odom_frame_id,
-                "stm32_port": stm32_port,
-                "motor_port": motor_port,
-                "stm32_baud": stm32_baud,
-                "motor_baud": motor_baud,
-                "hall_encoder": hall_encoder,
-                "limited_speed": limited_speed,
-                "wheelbase": wheelbase,
-            }
-        ],
+        parameters=[params_file],
+    )
+
+    start_joy_node = Node(
+        package="joy",
+        executable="joy_node",
+        name="joy",
+        parameters=[params_file],
+    )
+
+    # Teleop twist joy node
+    start_teleop_twist_joy_node = Node(
+        package="teleop_twist_joy",
+        executable="teleop_node",
+        name="teleop_twist_joy",
+        parameters=[params_file],
     )
 
     # Create the launch description and populate
@@ -123,17 +74,11 @@ def generate_launch_description():
     ld.add_action(colorized_output_envvar)
 
     # Declare the launch options
-    ld.add_action(declare_base_frame_id_cmd)
-    ld.add_action(declare_odom_frame_id_cmd)
-    ld.add_action(declare_stm32_port_cmd)
-    ld.add_action(declare_motor_port_cmd)
-    ld.add_action(declare_stm32_baud_cmd)
-    ld.add_action(declare_motor_baud_cmd)
-    ld.add_action(declare_hall_encoder_cmd)
-    ld.add_action(declare_limited_speed_cmd)
-    ld.add_action(declare_wheelbase_cmd)
+    ld.add_action(declare_params_file_cmd)
 
     # Add the nodes
-    ld.add_action(scorpio_base_node)
+    ld.add_action(start_scorpio_base_node)
+    ld.add_action(start_joy_node)
+    ld.add_action(start_teleop_twist_joy_node)
 
     return ld
