@@ -94,20 +94,6 @@ def generate_launch_description():
         description="Wheelbase in meters",
     )
 
-    # CmdVel to Ackermann converter node
-    cmd_vel_to_ackermann_node = Node(
-        package="scorpio_base",
-        executable="cmd_vel_to_ackermann_node",
-        name="cmd_vel_to_ackermann",
-        output="screen",
-        parameters=[
-            {
-                "frame_id": base_frame_id,
-                "wheelbase": wheelbase,
-            }
-        ],
-    )
-
     # Main Scorpio base driver node
     scorpio_base_node = Node(
         package="scorpio_base",
@@ -148,7 +134,6 @@ def generate_launch_description():
     ld.add_action(declare_wheelbase_cmd)
 
     # Add the nodes
-    ld.add_action(cmd_vel_to_ackermann_node)
     ld.add_action(scorpio_base_node)
 
     return ld

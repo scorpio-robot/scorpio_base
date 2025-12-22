@@ -159,6 +159,12 @@ ScorpioBaseNode::ScorpioBaseNode(const rclcpp::NodeOptions & options)
       ackermannCmdCallback(msg);
     });
 
+  cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+    "cmd_vel", 10, [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
+
+  cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+    "cmd_vel", 10, [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
+
   stm32_port_ptr_->startReadStream(
     [this](char * data, int len) { this->stm32DataCallback(data, len); });
   motor_port_ptr_->startReadStream(
@@ -379,6 +385,50 @@ void ScorpioBaseNode::ackermannCmdCallback(
   }
 
   sendPwmCommand(msg->drive.speed, msg->drive.steering_angle);
+}
+
+float ScorpioBaseNode::convertToSteeringAngle(float linear_vel, float angular_vel) const
+{
+  // If linear velocity is near zero, cannot determine steering angle
+  if (std::abs(linear_vel) < 1e-6f) {
+    return 0.0f;
+  }
+
+  // If angular velocity is near zero, going straight
+  if (std::abs(angular_vel) < 1e-6f) {
+    return 0.0f;
+  }
+
+  // Calculate turning radius: r = v / omega
+  // The sign of radius is preserved from angular_vel
+  float radius = linear_vel / angular_vel;
+
+  // Calculate steering angle: delta = atan(wheelbase / radius)
+  float steering_angle = std::atan(params_.wheelbase / radius);
+
+  const float max_steering_angle = static_cast<float>(M_PI / 4.0);  // π/4 radians
+  if (steering_angle > max_steering_angle) {
+    steering_angle = max_steering_angle;
+  } else if (steering_angle < -max_steering_angle) {
+    steering_angle = -max_steering_angle;
+  }
+
+  // Scale by 1.5 to match the real steering angle
+  return steering_angle * 1.5f;
+}
+
+void ScorpioBaseNode::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
+{
+  float steering_angle = convertToSteeringAngle(msg->linear.x, msg->angular.z);
+
+  {
+    std::lock_guard<std::mutex> lock(vel_mutex_);
+    current_speed_ = msg->linear.x;
+    new_vel_flag_ = true;
+    last_cmd_time_ = this->now();
+  }
+
+  sendPwmCommand(msg->linear.x, steering_angle);
 }
 
 void ScorpioBaseNode::motorSendTimer()

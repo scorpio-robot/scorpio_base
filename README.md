@@ -7,9 +7,8 @@ Hardware driver for the Scorpio robot base, ported from ROS1 to ROS2 Humble.
 - **Modern C++17** implementation with composition support
 - **Zero boost dependencies** - uses standard library (`std::thread`, `std::mutex`, `std::function`)
 - **Integrated cereal_port** - serial communication library embedded into the package
-- **Two nodes**:
-  - `scorpio_base_node`: Main hardware driver (IMU + Odometry + Motor control)
-  - `cmd_vel_to_ackermann_node`: Twist to Ackermann converter
+- **Built-in Twist to Ackermann converter** - supports both `cmd_vel` and `ackermann_cmd` topics
+- **Main hardware driver** - IMU + Odometry + Motor control
 
 ## Hardware Requirements
 
@@ -44,14 +43,11 @@ ros2 launch scorpio_base scorpio_base_launch.py \
   wheelbase:=0.315
 ```
 
-### Running nodes separately
+### Running the driver
 
 ```bash
-# Main driver
+# Main driver (supports both cmd_vel and ackermann_cmd)
 ros2 run scorpio_base scorpio_base_node
-
-# Converter
-ros2 run scorpio_base cmd_vel_to_ackermann_node
 ```
 
 ## Topics
@@ -61,7 +57,7 @@ ros2 run scorpio_base cmd_vel_to_ackermann_node
 - `~/ackermann_cmd` ([ackermann_msgs/AckermannDriveStamped](http://docs.ros.org/en/api/ackermann_msgs/html/msg/AckermannDriveStamped.html))
   - Ackermann drive commands (speed + steering angle)
 - `cmd_vel` ([geometry_msgs/Twist](http://docs.ros.org/en/api/geometry_msgs/html/msg/Twist.html))
-  - Twist commands (converted to Ackermann by `cmd_vel_to_ackermann`)
+  - Twist commands (automatically converted to Ackermann internally)
 
 ### Published
 
@@ -71,7 +67,6 @@ ros2 run scorpio_base cmd_vel_to_ackermann_node
   - Odometry from hall encoder (if enabled)
 - `feedback_velocity` ([geometry_msgs/Twist](http://docs.ros.org/en/api/geometry_msgs/html/msg/Twist.html))
   - Actual velocity feedback
-- `ackermann_cmd` (from `cmd_vel_to_ackermann`)
 
 ## Parameters
 
@@ -88,13 +83,6 @@ ros2 run scorpio_base cmd_vel_to_ackermann_node
 | `hall_encoder` | bool   | `true`            | Enable hall encoder odometry   |
 | `limited_speed`| double | `1.0`             | Maximum speed (m/s)            |
 | `wheelbase`    | double | `0.315`           | Wheelbase (m)                  |
-
-### cmd_vel_to_ackermann_node
-
-| Parameter    | Type   | Default | Description       |
-|-------------|--------|---------|-------------------|
-| `frame_id`  | string | `odom`  | Frame ID          |
-| `wheelbase` | double | `0.315` | Wheelbase (m)     |
 
 ## Serial Port Permissions
 

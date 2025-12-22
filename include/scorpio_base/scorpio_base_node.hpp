@@ -44,6 +44,10 @@ private:
 
   // ROS callbacks
   void ackermannCmdCallback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
+  void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
+
+  // Utility functions
+  float convertToSteeringAngle(float linear_vel, float angular_vel) const;
 
   // Timer callbacks
   void checkSerialTimeout(const rclcpp::Time & now);
@@ -82,6 +86,7 @@ private:
 
   // Subscribers
   rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 
   // Timer
   rclcpp::TimerBase::SharedPtr check_timer_;

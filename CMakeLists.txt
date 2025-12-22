@@ -41,11 +41,6 @@ rclcpp_components_register_node(${PROJECT_NAME}
   EXECUTABLE scorpio_base_node
 )
 
-rclcpp_components_register_node(${PROJECT_NAME}
-  PLUGIN scorpio_base::CmdVelToAckermannNode
-  EXECUTABLE cmd_vel_to_ackermann_node
-)
-
 #############
 ## Testing ##
 #############
