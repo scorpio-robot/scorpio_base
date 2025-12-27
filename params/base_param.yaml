@@ -22,12 +22,13 @@ teleop_twist_joy:
     scale_linear:
       x: 0.7
     scale_linear_turbo:
-      x: 1.5
+      x: 1.0
 
-    axis_angular:  # Left thumb stick horizontal
-      yaw: 0
+    axis_angular:  # Right thumb stick horizontal
+      yaw: 3
     scale_angular:
-      yaw: 0.4
+      yaw: 3.0
 
-    enable_button: 2  # Left trigger button
+    require_enable_button: False
+    enable_button: 4  # Left trigger button
     enable_turbo_button: 5  # Right trigger button
