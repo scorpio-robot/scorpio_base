@@ -21,6 +21,7 @@
 
 #include "ackermann_msgs/msg/ackermann_drive_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "scorpio_base/cereal_port.hpp"
 #include "scorpio_base/kalman_filter.hpp"
@@ -45,6 +46,7 @@ private:
   // ROS callbacks
   void ackermannCmdCallback(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg);
+  void cmdVelStampedCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg);
 
   // Utility functions
   float convertToSteeringAngle(float linear_vel, float angular_vel) const;
@@ -86,7 +88,8 @@ private:
 
   // Subscribers
   rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr ackermann_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_twist_;
+  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_sub_twist_stamped_;
 
   // Timer
   rclcpp::TimerBase::SharedPtr check_timer_;

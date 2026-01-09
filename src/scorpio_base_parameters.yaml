@@ -55,6 +55,11 @@ scorpio_base:
     validation:
       bounds<>: [0.0, 1.0]
 
+  use_stamped_vel:
+    type: bool
+    default_value: true
+    description: "Use TwistStamped instead of Twist for cmd_vel subscription"
+
   wheelbase:
     type: double
     default_value: 0.315

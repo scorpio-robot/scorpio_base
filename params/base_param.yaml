@@ -9,6 +9,7 @@ scorpio_base:
     hall_encoder: true
     limited_speed: 1.0
     wheelbase: 0.315
+    use_stamped_vel: True
 
 joy:
   ros__parameters:

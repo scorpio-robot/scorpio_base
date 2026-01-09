@@ -56,8 +56,8 @@ ros2 run scorpio_base scorpio_base_node
 
 - `~/ackermann_cmd` ([ackermann_msgs/AckermannDriveStamped](http://docs.ros.org/en/api/ackermann_msgs/html/msg/AckermannDriveStamped.html))
   - Ackermann drive commands (speed + steering angle)
-- `cmd_vel` ([geometry_msgs/Twist](http://docs.ros.org/en/api/geometry_msgs/html/msg/Twist.html))
-  - Twist commands (automatically converted to Ackermann internally)
+- `cmd_vel` ([geometry_msgs/Twist](http://docs.ros.org/en/api/geometry_msgs/html/msg/Twist.html) or [geometry_msgs/TwistStamped](http://docs.ros.org/en/api/geometry_msgs/html/msg/TwistStamped.html))
+  - Twist commands (automatically converted to Ackermann internally). Type depends on `use_stamped_vel` parameter.
 
 ### Published
 
@@ -82,6 +82,7 @@ ros2 run scorpio_base scorpio_base_node
 | `motor_baud`   | int    | `57600`           | Motor baud rate                |
 | `hall_encoder` | bool   | `true`            | Enable hall encoder odometry   |
 | `limited_speed`| double | `1.0`             | Maximum speed (m/s)            |
+| `use_stamped_vel`| bool   | `true`            | Use TwistStamped instead of Twist for cmd_vel subscription |
 | `wheelbase`    | double | `0.315`           | Wheelbase (m)                  |
 
 ## Serial Port Permissions

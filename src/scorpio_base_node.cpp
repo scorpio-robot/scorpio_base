@@ -159,11 +159,16 @@ ScorpioBaseNode::ScorpioBaseNode(const rclcpp::NodeOptions & options)
       ackermannCmdCallback(msg);
     });
 
-  cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-    "cmd_vel", 10, [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
-
-  cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-    "cmd_vel", 10, [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
+  if (params_.use_stamped_vel) {
+    cmd_vel_sub_twist_stamped_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
+      "cmd_vel", 10, [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
+        cmdVelStampedCallback(msg);
+      });
+  } else {
+    cmd_vel_sub_twist_ = this->create_subscription<geometry_msgs::msg::Twist>(
+      "cmd_vel", 10,
+      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { cmdVelCallback(msg); });
+  }
 
   stm32_port_ptr_->startReadStream(
     [this](char * data, int len) { this->stm32DataCallback(data, len); });
@@ -429,6 +434,13 @@ void ScorpioBaseNode::cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr 
   }
 
   sendPwmCommand(msg->linear.x, steering_angle);
+}
+
+void ScorpioBaseNode::cmdVelStampedCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
+{
+  // Extract twist from stamped message and call the regular callback
+  auto twist_msg = std::make_shared<geometry_msgs::msg::Twist>(msg->twist);
+  cmdVelCallback(twist_msg);
 }
 
 void ScorpioBaseNode::motorSendTimer()
