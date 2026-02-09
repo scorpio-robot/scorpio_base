@@ -1,6 +1,10 @@
-# Scorpio Base Driver (ROS2)
+# scorpio_base
 
-Hardware driver for the Scorpio robot base, ported from ROS1 to ROS2 Humble.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Build and Test](https://github.com/scorpio-robot/scorpio_base/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/scorpio-robot/scorpio_base/actions/workflows/build_and_test.yml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+
+Hardware driver for the scorpio robot base, ported from ROS1 to ROS2 Humble.
 
 ## Features
 
