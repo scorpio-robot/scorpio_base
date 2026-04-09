@@ -6,7 +6,9 @@ scorpio_base:
     motor_port: "/dev/ttyS3"
     stm32_baud: 115200
     motor_baud: 57600
-    hall_encoder: true
+    publish_odometry: true
+    odom_topic: "base/odometry"
+    send_transform: false
     limited_speed: 1.0
     wheelbase: 0.315
     use_stamped_vel: True

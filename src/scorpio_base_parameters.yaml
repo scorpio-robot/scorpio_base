@@ -13,6 +13,13 @@ scorpio_base:
     validation:
       not_empty<>: []
 
+  odom_topic:
+    type: string
+    default_value: "base/odometry"
+    description: "Topic name for odometry publication"
+    validation:
+      not_empty<>: []
+
   stm32_port:
     type: string
     default_value: "/dev/ttyS0"
@@ -43,10 +50,15 @@ scorpio_base:
       gt<>: [0]
       one_of<>: [[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]]
 
-  hall_encoder:
+  publish_odometry:
     type: bool
     default_value: true
-    description: "Enable hall encoder-based odometry"
+    description: "Enable odometry message publication"
+
+  send_transform:
+    type: bool
+    default_value: true
+    description: "Enable odom to base transform publication"
 
   limited_speed:
     type: double

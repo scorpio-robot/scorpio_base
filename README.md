@@ -84,7 +84,9 @@ ros2 run scorpio_base scorpio_base_node
 | `motor_port`   | string | `/dev/ttyS3`      | Motor controller serial port   |
 | `stm32_baud`   | int    | `115200`          | STM32 baud rate                |
 | `motor_baud`   | int    | `57600`           | Motor baud rate                |
-| `hall_encoder` | bool   | `true`            | Enable hall encoder odometry   |
+| `publish_odometry` | bool   | `true`            | Enable odometry message publication |
+| `odom_topic`   | string | `odom`            | Odometry topic name            |
+| `send_transform` | bool   | `true`            | Enable odom->base TF publication |
 | `limited_speed`| double | `1.0`             | Maximum speed (m/s)            |
 | `use_stamped_vel`| bool   | `true`            | Use TwistStamped instead of Twist for cmd_vel subscription |
 | `wheelbase`    | double | `0.315`           | Wheelbase (m)                  |

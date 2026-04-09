@@ -83,7 +83,11 @@ ScorpioBaseNode::ScorpioBaseNode(const rclcpp::NodeOptions & options)
     this->get_logger(), "  Motor Port: %s @ %ld", params_.motor_port.c_str(), params_.motor_baud);
   RCLCPP_INFO(this->get_logger(), "  Speed Limit: %.2f m/s", params_.limited_speed);
   RCLCPP_INFO(
-    this->get_logger(), "  Hall Encoder: %s", params_.hall_encoder ? "enabled" : "disabled");
+    this->get_logger(), "  Publish Odometry: %s",
+    params_.publish_odometry ? "enabled" : "disabled");
+  RCLCPP_INFO(this->get_logger(), "  Odom Topic: %s", params_.odom_topic.c_str());
+  RCLCPP_INFO(
+    this->get_logger(), "  Send Transform: %s", params_.send_transform ? "enabled" : "disabled");
 
   // Initialize arrays
   fb_time_.fill(0.0);
@@ -136,11 +140,10 @@ ScorpioBaseNode::ScorpioBaseNode(const rclcpp::NodeOptions & options)
 
   // Create publishers
   imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>("imu_data", 10);
-
-  if (params_.hall_encoder) {
-    odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
-    feedback_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("feedback_velocity", 10);
+  if (params_.publish_odometry) {
+    odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(params_.odom_topic, 10);
   }
+  feedback_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("feedback_velocity", 10);
 
   // Create timers
   check_timer_ =
@@ -650,95 +653,97 @@ void ScorpioBaseNode::parseStm32Packet(const uint8_t * buf, int len)
 
   imu_pub_->publish(imu_msg);
 
-  // Parse encoder data if hall encoder is enabled
-  if (params_.hall_encoder) {
-    int current_pwm = (buf[26] << 24) | (buf[27] << 16) | (buf[28] << 8) | buf[29];
+  int current_pwm = (buf[26] << 24) | (buf[27] << 16) | (buf[28] << 8) | buf[29];
 
-    // First time initialization
-    static bool first_time = true;
-    if (first_time) {
-      last_pwm_ = current_pwm;
-      first_time = false;
-    }
-
-    // Calculate distance traveled
-    double distance = M_PI * WHEEL_DIAMETER * (current_pwm - last_pwm_) * 5.0 / 574.0;
+  // First time initialization
+  static bool first_time = true;
+  if (first_time) {
     last_pwm_ = current_pwm;
+    first_time = false;
+  }
 
-    // Update odometry
-    odom_x_ += distance * std::cos(odom_yaw_);
-    odom_y_ += distance * std::sin(odom_yaw_);
-    odom_yaw_ = yaw;
-    wheel_dist_ += distance;
+  // Calculate distance traveled
+  double distance = M_PI * WHEEL_DIAMETER * (current_pwm - last_pwm_) * 5.0 / 574.0;
+  last_pwm_ = current_pwm;
 
-    // Apply Kalman filter
-    double est_x = odom_x_filter_.predict(wheel_dist_);
+  // Update odometry
+  odom_x_ += distance * std::cos(odom_yaw_);
+  odom_y_ += distance * std::sin(odom_yaw_);
+  odom_yaw_ = yaw;
+  wheel_dist_ += distance;
 
-    // Update circular buffer
-    int curr_idx = (vel_idx_ + COUNT_TIMES - 1) % COUNT_TIMES;
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    double ts = static_cast<double>(tv.tv_sec) * 1000.0 + tv.tv_usec / 1000.0;
+  // Apply Kalman filter
+  double est_x = odom_x_filter_.predict(wheel_dist_);
 
-    fb_time_[curr_idx] = ts;
-    fb_dist_[curr_idx] = wheel_dist_;
-    odom_x_arr_[curr_idx] = est_x;
-    odom_yaw_arr_[curr_idx] = odom_yaw_;
+  // Update circular buffer
+  int curr_idx = (vel_idx_ + COUNT_TIMES - 1) % COUNT_TIMES;
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  double ts = static_cast<double>(tv.tv_sec) * 1000.0 + tv.tv_usec / 1000.0;
 
-    // Calculate velocity
-    double dt = (fb_time_[curr_idx] - fb_time_[vel_idx_]) * 0.001;
-    if (dt > 0.001) {
-      vel_x_list_[curr_idx] = (odom_x_arr_[curr_idx] - odom_x_arr_[vel_idx_]) / dt;
+  fb_time_[curr_idx] = ts;
+  fb_dist_[curr_idx] = wheel_dist_;
+  odom_x_arr_[curr_idx] = est_x;
+  odom_yaw_arr_[curr_idx] = odom_yaw_;
 
-      // Average velocity
-      double vel_x = 0.0;
-      for (int i = 0; i < COUNT_TIMES; i++) {
-        vel_x += vel_x_list_[i];
-      }
-      vel_x /= COUNT_TIMES;
+  // Calculate velocity
+  double dt = (fb_time_[curr_idx] - fb_time_[vel_idx_]) * 0.001;
+  if (dt > 0.001) {
+    vel_x_list_[curr_idx] = (odom_x_arr_[curr_idx] - odom_x_arr_[vel_idx_]) / dt;
 
-      // Angular velocity
-      double delta_yaw = odom_yaw_arr_[curr_idx] - odom_yaw_arr_[vel_idx_];
-      // Normalize angle
-      while (delta_yaw > M_PI) delta_yaw -= 2.0 * M_PI;
-      while (delta_yaw < -M_PI) delta_yaw += 2.0 * M_PI;
-      double vel_yaw = delta_yaw / dt;
-
-      vel_idx_ = (vel_idx_ + 1) % COUNT_TIMES;
-
-      // Publish odometry
-      publishOdometry(imu_msg.header.stamp);
-
-      // Publish feedback velocity
-      auto twist_msg = geometry_msgs::msg::Twist();
-      twist_msg.linear.x = vel_x;
-      twist_msg.linear.y = 0.0;
-      twist_msg.angular.z = vel_yaw;
-      feedback_vel_pub_->publish(twist_msg);
+    // Average velocity
+    double vel_x = 0.0;
+    for (int i = 0; i < COUNT_TIMES; i++) {
+      vel_x += vel_x_list_[i];
     }
+    vel_x /= COUNT_TIMES;
+
+    // Angular velocity
+    double delta_yaw = odom_yaw_arr_[curr_idx] - odom_yaw_arr_[vel_idx_];
+    // Normalize angle
+    while (delta_yaw > M_PI) delta_yaw -= 2.0 * M_PI;
+    while (delta_yaw < -M_PI) delta_yaw += 2.0 * M_PI;
+    double vel_yaw = delta_yaw / dt;
+
+    vel_idx_ = (vel_idx_ + 1) % COUNT_TIMES;
+
+    // Publish odometry/TF based on runtime parameters
+    publishOdometry(imu_msg.header.stamp);
+
+    // Publish feedback velocity
+    auto twist_msg = geometry_msgs::msg::Twist();
+    twist_msg.linear.x = vel_x;
+    twist_msg.linear.y = 0.0;
+    twist_msg.angular.z = vel_yaw;
+    feedback_vel_pub_->publish(twist_msg);
   }
 }
 
 void ScorpioBaseNode::publishOdometry(const rclcpp::Time & stamp)
 {
-  // Publish TF
-  geometry_msgs::msg::TransformStamped odom_trans;
-  odom_trans.header.stamp = stamp;
-  odom_trans.header.frame_id = params_.odom_frame_id;
-  odom_trans.child_frame_id = params_.base_frame_id;
-
-  odom_trans.transform.translation.x = odom_x_;
-  odom_trans.transform.translation.y = odom_y_;
-  odom_trans.transform.translation.z = 0.0;
-
   tf2::Quaternion q;
   q.setRPY(0.0, 0.0, odom_yaw_);
-  odom_trans.transform.rotation.x = q.x();
-  odom_trans.transform.rotation.y = q.y();
-  odom_trans.transform.rotation.z = q.z();
-  odom_trans.transform.rotation.w = q.w();
 
-  tf_broadcaster_->sendTransform(odom_trans);
+  if (params_.send_transform) {
+    geometry_msgs::msg::TransformStamped odom_trans;
+    odom_trans.header.stamp = stamp;
+    odom_trans.header.frame_id = params_.odom_frame_id;
+    odom_trans.child_frame_id = params_.base_frame_id;
+
+    odom_trans.transform.translation.x = odom_x_;
+    odom_trans.transform.translation.y = odom_y_;
+    odom_trans.transform.translation.z = 0.0;
+    odom_trans.transform.rotation.x = q.x();
+    odom_trans.transform.rotation.y = q.y();
+    odom_trans.transform.rotation.z = q.z();
+    odom_trans.transform.rotation.w = q.w();
+
+    tf_broadcaster_->sendTransform(odom_trans);
+  }
+
+  if (!params_.publish_odometry || !odom_pub_) {
+    return;
+  }
 
   // Publish Odometry message
   auto odom_msg = nav_msgs::msg::Odometry();
