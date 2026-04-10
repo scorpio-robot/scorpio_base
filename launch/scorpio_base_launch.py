@@ -51,21 +51,6 @@ def generate_launch_description():
         parameters=[params_file],
     )
 
-    start_joy_node = Node(
-        package="joy",
-        executable="joy_node",
-        name="joy",
-        parameters=[params_file],
-    )
-
-    # Teleop twist joy node
-    start_teleop_twist_joy_node = Node(
-        package="teleop_twist_joy",
-        executable="teleop_node",
-        name="teleop_twist_joy",
-        parameters=[params_file],
-    )
-
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -78,7 +63,5 @@ def generate_launch_description():
 
     # Add the nodes
     ld.add_action(start_scorpio_base_node)
-    ld.add_action(start_joy_node)
-    ld.add_action(start_teleop_twist_joy_node)
 
     return ld
